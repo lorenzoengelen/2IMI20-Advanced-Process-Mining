@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?><process version="7.2.003">
+  <context>
+    <input/>
+    <output/>
+    <macros/>
+  </context>
+  <operator activated="true" class="process" compatibility="7.2.003" expanded="true" name="Process">
+    <parameter key="logverbosity" value="init"/>
+    <parameter key="random_seed" value="2001"/>
+    <parameter key="send_mail" value="never"/>
+    <parameter key="notification_email" value=""/>
+    <parameter key="process_duration_for_mail" value="30"/>
+    <parameter key="encoding" value="SYSTEM"/>
+    <process expanded="true">
+      <operator activated="true" class="rapidprom:import_xlog" compatibility="4.0.001" expanded="true" height="68" name="Import Event Log" width="90" x="45" y="34">
+        <parameter key="file" value="/Users/lorenzoengelen/Dropbox/TU Eindhoven/2IMI20 Advanced Process Mining/assignment-1/APM_Assignment_1.xes"/>
+        <parameter key="importer" value="Naive"/>
+      </operator>
+      <operator activated="true" class="multiply" compatibility="7.2.003" expanded="true" height="103" name="Multiply" width="90" x="179" y="34"/>
+      <operator activated="true" class="rapidprom:alpha_miner" compatibility="4.0.001" expanded="true" height="68" name="Alpha Miner (Petri Net)" width="90" x="313" y="85">
+        <parameter key="event_classifier" value="(Event Name AND Lifecycle transition)"/>
+        <parameter key="Variant" value="AlphaMiner +"/>
+      </operator>
+      <operator activated="true" class="rapidprom:replay_a_log_on_petri_net_for_performance_conformance_analysis" compatibility="4.0.001" expanded="true" height="82" name="Analyze Performance (Manifest) " width="90" x="447" y="34">
+        <parameter key="event_classifier" value="(Event Name AND Lifecycle transition)"/>
+        <parameter key="Max Explored States (in Thousands)" value="200"/>
+        <parameter key="Timeout (sec)" value="60"/>
+        <parameter key="Number of Threads" value="8"/>
+      </operator>
+      <connect from_op="Import Event Log" from_port="output" to_op="Multiply" to_port="input"/>
+      <connect from_op="Multiply" from_port="output 1" to_op="Analyze Performance (Manifest) " to_port="event log (ProM Event Log)"/>
+      <connect from_op="Multiply" from_port="output 2" to_op="Alpha Miner (Petri Net)" to_port="event log (ProM Event Log)"/>
+      <connect from_op="Alpha Miner (Petri Net)" from_port="model (ProM Petri Net)" to_op="Analyze Performance (Manifest) " to_port="model (ProM Petri Net)"/>
+      <portSpacing port="source_input 1" spacing="0"/>
+      <portSpacing port="sink_result 1" spacing="0"/>
+    </process>
+  </operator>
+</process>
