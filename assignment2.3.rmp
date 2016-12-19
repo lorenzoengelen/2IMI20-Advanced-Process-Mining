@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><process version="7.2.003">
+  <context>
+    <input/>
+    <output/>
+    <macros/>
+  </context>
+  <operator activated="true" class="process" compatibility="7.2.003" expanded="true" name="Process">
+    <parameter key="logverbosity" value="init"/>
+    <parameter key="random_seed" value="2001"/>
+    <parameter key="send_mail" value="never"/>
+    <parameter key="notification_email" value=""/>
+    <parameter key="process_duration_for_mail" value="30"/>
+    <parameter key="encoding" value="SYSTEM"/>
+    <process expanded="true">
+      <operator activated="true" class="rapidprom:import_xlog" compatibility="4.0.001" expanded="true" height="68" name="Import Event Log" width="90" x="45" y="34">
+        <parameter key="file" value="/Users/lorenzoengelen/Dropbox/TU Eindhoven/2IMI20 Advanced Process Mining/assignment-2/APM_Assignment_2.xes"/>
+        <parameter key="importer" value="Naive"/>
+      </operator>
+      <operator activated="true" class="loop_parameters" compatibility="7.2.003" expanded="true" height="82" name="Loop Parameters" width="90" x="246" y="34">
+        <list key="parameters">
+          <parameter key="Inductive Miner (Petri Net).Variation" value="Inductive Miner,Inductive Miner - Infrequent,Inductive Miner - Incompleteness"/>
+          <parameter key="Add Noise.Noise Percentage" value="[0.5;1;2;linear]"/>
+          <parameter key="Add Noise.Noise Type" value="Remove Task,Remove Head,Remove Body,Add Event,Swap Tasks"/>
+          <parameter key="Inductive Miner (Petri Net).Noise Threshold" value="[0.0;0.5;2;linear]"/>
+        </list>
+        <parameter key="error_handling" value="fail on error"/>
+        <parameter key="synchronize" value="false"/>
+        <process expanded="true">
+          <operator activated="true" class="multiply" compatibility="7.2.003" expanded="true" height="103" name="Multiply" width="90" x="45" y="34"/>
+          <operator activated="true" class="rapidprom:add_noise_log" compatibility="4.0.001" expanded="true" height="68" name="Add Noise" width="90" x="179" y="34">
+            <parameter key="Noise Percentage" value="1.0"/>
+            <parameter key="Noise Type" value="Swap Tasks"/>
+            <parameter key="Seed" value="1"/>
+          </operator>
+          <operator activated="true" class="rapidprom:mine_petri_net_with_inductive_miner" compatibility="4.0.001" expanded="true" height="68" name="Inductive Miner (Petri Net)" width="90" x="313" y="34">
+            <parameter key="event_classifier" value="(Event Name AND Lifecycle transition)"/>
+            <parameter key="Variation" value="Inductive Miner - Incompleteness"/>
+            <parameter key="Noise Threshold" value="0.5"/>
+          </operator>
+          <operator activated="true" class="rapidprom:reduce_silent_transitions" compatibility="4.0.001" expanded="true" height="68" name="Reduce Silent Transitions (Petri Net)" width="90" x="447" y="34">
+            <parameter key="Preserve:" value="Soundness"/>
+          </operator>
+          <operator activated="true" class="rapidprom:replay_a_log_on_petri_net_for_conformance_analysis" compatibility="4.0.001" expanded="true" height="145" name="Conformance Checking" width="90" x="179" y="187">
+            <parameter key="event_classifier" value="(Event Name AND Lifecycle transition)"/>
+            <parameter key="Replay Algorithm" value="ILP Replayer"/>
+            <parameter key="Max Explored States (in Thousands)" value="200"/>
+            <parameter key="Timeout (sec)" value="60"/>
+            <parameter key="Number of Threads" value="8"/>
+          </operator>
+          <operator activated="true" class="extract_log_value" compatibility="7.2.003" expanded="true" height="68" name="Fitness" width="90" x="648" y="289">
+            <parameter key="attribute_name" value="Value"/>
+            <parameter key="example_index" value="1"/>
+          </operator>
+          <operator activated="true" class="rapidprom:measure_precision" compatibility="4.0.001" expanded="true" height="68" name="Measure Model Precision based on alignments" width="90" x="380" y="187">
+            <parameter key="Consider traces with the same activity sequence as the same trace" value="true"/>
+          </operator>
+          <operator activated="true" class="multiply" compatibility="7.2.003" expanded="true" height="103" name="Multiply (2)" width="90" x="514" y="187"/>
+          <operator activated="true" class="extract_log_value" compatibility="7.2.003" expanded="true" height="68" name="Generalization" width="90" x="648" y="187">
+            <parameter key="attribute_name" value="Value"/>
+            <parameter key="example_index" value="2"/>
+          </operator>
+          <operator activated="true" class="extract_log_value" compatibility="7.2.003" expanded="true" height="68" name="Precision" width="90" x="648" y="85">
+            <parameter key="attribute_name" value="Value"/>
+            <parameter key="example_index" value="1"/>
+          </operator>
+          <operator activated="true" class="log" compatibility="7.2.003" expanded="true" height="124" name="Log" width="90" x="849" y="85">
+            <list key="log">
+              <parameter key="Inductive Miner Variation" value="operator.Inductive Miner (Petri Net).parameter.Variation"/>
+              <parameter key="Noise Percentage" value="operator.Add Noise.parameter.Noise Percentage"/>
+              <parameter key="Noise Type" value="operator.Add Noise.parameter.Noise Type"/>
+              <parameter key="Noise Threshold" value="operator.Inductive Miner (Petri Net).parameter.Noise Threshold"/>
+              <parameter key="Precision" value="operator.Precision.value.data_value"/>
+              <parameter key="Generalization" value="operator.Generalization.value.data_value"/>
+              <parameter key="Fitness" value="operator.Fitness.value.data_value"/>
+            </list>
+            <parameter key="sorting_type" value="none"/>
+            <parameter key="sorting_k" value="100"/>
+            <parameter key="persistent" value="false"/>
+          </operator>
+          <connect from_port="input 1" to_op="Multiply" to_port="input"/>
+          <connect from_op="Multiply" from_port="output 1" to_op="Add Noise" to_port="event log (ProM Event Log)"/>
+          <connect from_op="Multiply" from_port="output 2" to_op="Conformance Checking" to_port="event log (ProM Event Log)"/>
+          <connect from_op="Add Noise" from_port="event log (ProM Event Log)" to_op="Inductive Miner (Petri Net)" to_port="event log (ProM Event Log)"/>
+          <connect from_op="Inductive Miner (Petri Net)" from_port="model (ProM Petri Net)" to_op="Reduce Silent Transitions (Petri Net)" to_port="model (ProM Petri Net)"/>
+          <connect from_op="Reduce Silent Transitions (Petri Net)" from_port="model (ProM Petri Net)" to_op="Conformance Checking" to_port="model (ProM Petri Net)"/>
+          <connect from_op="Conformance Checking" from_port="alignments (ProM PNRepResult)" to_op="Measure Model Precision based on alignments" to_port="alignments (ProM PNRepResult)"/>
+          <connect from_op="Conformance Checking" from_port="example set with metrics (Data Table)" to_op="Fitness" to_port="example set"/>
+          <connect from_op="Fitness" from_port="example set" to_op="Log" to_port="through 3"/>
+          <connect from_op="Measure Model Precision based on alignments" from_port="example set (Data Table)" to_op="Multiply (2)" to_port="input"/>
+          <connect from_op="Multiply (2)" from_port="output 1" to_op="Precision" to_port="example set"/>
+          <connect from_op="Multiply (2)" from_port="output 2" to_op="Generalization" to_port="example set"/>
+          <connect from_op="Generalization" from_port="example set" to_op="Log" to_port="through 2"/>
+          <connect from_op="Precision" from_port="example set" to_op="Log" to_port="through 1"/>
+          <connect from_op="Log" from_port="through 1" to_port="result 1"/>
+          <portSpacing port="source_input 1" spacing="0"/>
+          <portSpacing port="source_input 2" spacing="0"/>
+          <portSpacing port="sink_performance" spacing="0"/>
+          <portSpacing port="sink_result 1" spacing="0"/>
+          <portSpacing port="sink_result 2" spacing="0"/>
+        </process>
+      </operator>
+      <operator activated="true" class="log_to_data" compatibility="7.2.003" expanded="true" height="103" name="Log to Data" width="90" x="380" y="34"/>
+      <operator activated="true" class="write_excel" compatibility="7.2.003" expanded="true" height="82" name="Write Excel" width="90" x="581" y="34">
+        <parameter key="excel_file" value="/Users/lorenzoengelen/Desktop/rapidminer.xlsx"/>
+        <parameter key="file_format" value="xlsx"/>
+        <parameter key="encoding" value="SYSTEM"/>
+        <parameter key="sheet_name" value="Inductive Miner"/>
+        <parameter key="date_format" value="yyyy-MM-dd HH:mm:ss"/>
+        <parameter key="number_format" value="#.0"/>
+      </operator>
+      <connect from_op="Import Event Log" from_port="output" to_op="Loop Parameters" to_port="input 1"/>
+      <connect from_op="Loop Parameters" from_port="result 1" to_op="Log to Data" to_port="through 1"/>
+      <connect from_op="Log to Data" from_port="exampleSet" to_op="Write Excel" to_port="input"/>
+      <portSpacing port="source_input 1" spacing="0"/>
+      <portSpacing port="sink_result 1" spacing="0"/>
+    </process>
+  </operator>
+</process>
